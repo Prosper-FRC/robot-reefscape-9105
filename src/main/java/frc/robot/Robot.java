@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -28,6 +29,7 @@ public class Robot extends LoggedRobot {
         Logger.start();
 
         mRobotContainer = new RobotContainer();
+        CameraServer.startAutomaticCapture();
     }
 
     @Override

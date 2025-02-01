@@ -230,7 +230,7 @@ public class Drive extends SubsystemBase{
                     teleopSpeeds.vxMetersPerSecond, 
                     teleopSpeeds.vyMetersPerSecond,
                     headingController.getSnapOutput(
-                        swervePoseEstimator.getEstimatedPosition().getRotation()));
+                        swervePoseEstimator.getEstimatedPosition().getRotation().times(-1)));
                 break;
 
             default:
@@ -435,7 +435,7 @@ public class Drive extends SubsystemBase{
         return gyroInputs.yawPosition;
     }
 
-    @AutoLogOutput(key = "Drive/Odometry/PoseEstimate")
+    @AutoLogOutput(key = "Drive/Odometry/EstimatedPose")
     public Pose2d getEstimatedPose(){
         return swervePoseEstimator.getEstimatedPosition();
     }
