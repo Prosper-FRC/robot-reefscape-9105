@@ -29,6 +29,9 @@ public class Robot extends LoggedRobot {
         Logger.start();
 
         mRobotContainer = new RobotContainer();
+
+        // Caputre the stream from the network table //
+        // If multiple cameras add an index accordingly //
         CameraServer.startAutomaticCapture();
     }
 

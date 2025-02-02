@@ -1,4 +1,4 @@
-package frc.robot.drive;
+package frc.robot.subsystems.drive;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -73,12 +73,23 @@ public class Module {
     }
 
     /**
-     * Run characterization for drive motor gains. Dont use kA from Sys ID
+     * Run characterization for drive motor gains. kA can be used for MOI
      * Bind this to a button and let it run
      * @param inputVolts volts fed into the motor
      */
     public void runLinearCharacterization(double inputVolts) {
         setAzimuthPosition(Rotation2d.fromRotations(0));
+        setDriveVelocity(null);
+        setDriveVolts(inputVolts);
+    }
+
+    /**
+     * Run characterization for azimuth motor gains. kA can be used for MOI
+     * Bind this to a button and let it run
+     * @param inputVolts volts fed into the motor
+     */
+    public void runCircularCharacterization(double inputVolts, Rotation2d angle) {
+        setAzimuthPosition(angle);
         setDriveVelocity(null);
         setDriveVolts(inputVolts);
     }

@@ -1,10 +1,10 @@
-package frc.robot.drive;
+package frc.robot.subsystems.drive;
 
-import static frc.robot.drive.DriveConstants.kMaxAzimuthAngularRadiansPS;
-import static frc.robot.drive.DriveConstants.kMaxLinearAcceleration;
-import static frc.robot.drive.DriveConstants.kMaxLinearSpeed;
-import static frc.robot.drive.DriveConstants.kMaxRotationalAccelerationRadians;
-import static frc.robot.drive.DriveConstants.kMaxRotationalSpeedRadians;
+import static frc.robot.subsystems.drive.DriveConstants.kMaxAzimuthAngularRadiansPS;
+import static frc.robot.subsystems.drive.DriveConstants.kMaxLinearAcceleration;
+import static frc.robot.subsystems.drive.DriveConstants.kMaxLinearSpeed;
+import static frc.robot.subsystems.drive.DriveConstants.kMaxRotationalAccelerationRadians;
+import static frc.robot.subsystems.drive.DriveConstants.kMaxRotationalSpeedRadians;
 
 import java.util.function.DoubleSupplier;
 
@@ -37,10 +37,13 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.drive.controllers.HeadingController;
-import frc.robot.drive.controllers.TeleopController;
+import frc.robot.subsystems.drive.controllers.HeadingController;
+import frc.robot.subsystems.drive.controllers.TeleopController;
+import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.Vision.VisionObservation;
 import frc.robot.utils.debugging.LoggedTunableNumber;
 import frc.robot.utils.debugging.SysIDCharacterization;
+import frc.robot.utils.math.AllianceFlipUtil;
 import frc.robot.utils.swerve.LocalADStarAK;
 import frc.robot.utils.swerve.SwerveSetpoint;
 import frc.robot.utils.swerve.SwerveSetpointGenerator;
@@ -52,19 +55,21 @@ public class Drive extends SubsystemBase{
         TELEOP,
         AUTO_HEADING,
         AUTON,
-        SYS_ID,
+        DRIVE_SYSID,
+        AZIMUTH_SYSID,
         SNIPER_UP,
         SNIPER_DOWN,
         SNIPER_RIGHT,
         SNIPER_LEFT,
         DRIFT_TEST,
         STOP,
-        RIGHT_DEG
+        PROCESSOR
     }
 
     private Module[] modules; 
     private GyroIO gyro;
     private GyroInputsAutoLogged gyroInputs = new GyroInputsAutoLogged();
+    private Vision vision;
     
     private ChassisSpeeds desiredSpeeds = new ChassisSpeeds();
     private ChassisSpeeds autonDesiredSpeeds = new ChassisSpeeds();
@@ -98,9 +103,10 @@ public class Drive extends SubsystemBase{
     @AutoLogOutput(key="Drive/HeadingGoal")
     private Rotation2d headingGoal = new Rotation2d();
     
-    public Drive(Module[] modules, GyroIO gyro){
+    public Drive(Module[] modules, GyroIO gyro, Vision vision){
         this.modules = modules;
         this.gyro = gyro;
+        this.vision = vision;
         robotRotation = gyroInputs.yawPosition;
 
         swerveOdometry = new SwerveDriveOdometry(kinematics, getRobotRotation(), getModulePositions());
@@ -169,14 +175,31 @@ public class Drive extends SubsystemBase{
                     + getChassisSpeeds().omegaRadiansPerSecond * 0.02) % 360.0);
         }
 
-
-        headingController.updateHeadingControllerConfig();
+        // if(vision != null){
+        //     vision.periodic(swervePoseEstimator.getEstimatedPosition(), swerveOdometry.getPoseMeters());
+        //     VisionObservation[] observations = vision.getVisionObservations();
+            
+        //     for(VisionObservation observation : observations){
+        //         if(observation.hasObserved()){
+        //             swervePoseEstimator.addVisionMeasurement(
+        //                 observation.pose(), 
+        //                 observation.timeStamp(),
+        //                 observation.stdDevs());
+        //         }
+    
+        //         Logger.recordOutput(observation.camName()+"/stdDevX", observation.stdDevs().get(0));
+        //         Logger.recordOutput(observation.camName()+"/stdDevY", observation.stdDevs().get(1));
+        //         Logger.recordOutput(observation.camName()+"/stdDevTheta", observation.stdDevs().get(2));
+        //         Logger.recordOutput(observation.camName()+"/TransformFromOdometry", swerveOdometry.getPoseMeters().minus(observation.pose()));
+        //     }
+    
+        // }
 
         swervePoseEstimator.update(robotRotation, getModulePositions());
         swerveOdometry.update(robotRotation, getModulePositions());
-
+        
+        headingController.updateHeadingControllerConfig();
         field.setRobotPose(getEstimatedPose());
-
 
         // The teleop controller takes in the joystick input and converts it to field relative chassis speeds //
         // This is done periodically to constantly grab the inputs from the joysticks //
@@ -187,7 +210,10 @@ public class Drive extends SubsystemBase{
                 desiredSpeeds = teleopSpeeds;
                 break;
 
-            case SYS_ID:
+            case DRIVE_SYSID:
+                break;
+
+            case AZIMUTH_SYSID:
                 break;
 
             case SNIPER_UP:
@@ -224,13 +250,12 @@ public class Drive extends SubsystemBase{
                 }
                 break;
             
-            case RIGHT_DEG:
-                headingGoal = Rotation2d.fromDegrees(-90.0);
+            case PROCESSOR:
+                headingGoal = AllianceFlipUtil.apply(Rotation2d.fromDegrees(-90.0));
                 desiredSpeeds = new ChassisSpeeds(
                     teleopSpeeds.vxMetersPerSecond, 
                     teleopSpeeds.vyMetersPerSecond,
-                    headingController.getSnapOutput(
-                        swervePoseEstimator.getEstimatedPosition().getRotation().times(-1)));
+                    headingController.getSnapOutput(swervePoseEstimator.getEstimatedPosition().getRotation()));
                 break;
 
             default:
@@ -277,10 +302,28 @@ public class Drive extends SubsystemBase{
      * @return the command that will be runned
      */
     public Command characterizeDriveMotors() {
-        return setDriveStateCommand(DriveState.SYS_ID).andThen(
+        return setDriveStateCommand(DriveState.DRIVE_SYSID).andThen(
             SysIDCharacterization.runDriveSysIDTests( (voltage) -> {
                 for (var module : modules) module.runLinearCharacterization(voltage);
         }, this));
+    }
+
+    /**
+     * Runs characterization to find the gains of the azimuth motor 
+     * @return the command that will be runned
+     */
+    public Command characterizeAzimuthMotors() {
+        return setDriveStateCommand(DriveState.AZIMUTH_SYSID).andThen(
+            SysIDCharacterization.runDriveSysIDTests( (voltage) -> {
+                runCircularCharacterization(voltage);
+        }, this));
+    }
+
+    public void runCircularCharacterization(double volts){
+        modules[0].runCircularCharacterization( volts, Rotation2d.fromDegrees(-45.0));
+        modules[1].runCircularCharacterization(-volts, Rotation2d.fromDegrees( 45.0));
+        modules[2].runCircularCharacterization( volts, Rotation2d.fromDegrees( 45.0));
+        modules[3].runCircularCharacterization(-volts, Rotation2d.fromDegrees(-45.0));
     }
 
     public void setChassisSpeeds(ChassisSpeeds speeds){

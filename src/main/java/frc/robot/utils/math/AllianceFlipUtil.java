@@ -5,7 +5,6 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-// TODO: Needs to be changed every year for new map //
 package frc.robot.utils.math;
 
 import edu.wpi.first.math.geometry.Pose2d;

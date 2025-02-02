@@ -1,4 +1,4 @@
-package frc.robot.drive;
+package frc.robot.subsystems.drive;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -15,7 +15,7 @@ public class DriveConstants {
 
     public static final int kGyroPort = 10;
 
-    // TODO: Might need to change this to a lower value in pp and here
+    // TODO: needs to be tuned
     public static final double kMaxLinearSpeed = 4.5;
     public static final double kMaxLinearAcceleration = 7.7;
     public static final double kMaxRotationalSpeedRadians = Math.toRadians(360.0);
@@ -37,7 +37,7 @@ public class DriveConstants {
     public static final SwerveDriveKinematics kKinematics = new SwerveDriveKinematics(kModuleTranslations);
 
     // TODO: Needs to be tuned //
-    public static final double kDriftRate = RobotBase.isReal() ? 1 : 3.0;
+    public static final double kDriftRate = RobotBase.isReal() ? 1 : 1.0;
 
     public static final SwerveModuleHardwareConfig kFrontLeft = new SwerveModuleHardwareConfig(
       "FrontLeft", 

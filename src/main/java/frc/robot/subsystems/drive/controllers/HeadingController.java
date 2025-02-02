@@ -1,4 +1,4 @@
-package frc.robot.drive.controllers;
+package frc.robot.subsystems.drive.controllers;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -23,7 +23,7 @@ public class HeadingController {
     public static final LoggedTunableNumber kStablizingP = new LoggedTunableNumber("SwerveHeadingController/Stabilizing/kP", 2.5);
     public static final LoggedTunableNumber kStablizingI = new LoggedTunableNumber("SwerveHeadingController/Stabilizing/kI", 0.0);
     public static final LoggedTunableNumber kStablizingD = new LoggedTunableNumber("SwerveHeadingController/Stabilizing/kD", 0.0);
-     public static final LoggedTunableNumber kToleranceDegrees = new LoggedTunableNumber("SwerveHeadingController/Stabilizing/kD", 0.75);
+     public static final LoggedTunableNumber kToleranceDegrees = new LoggedTunableNumber("SwerveHeadingController/Tolerance", 0.75);
 
     private ProfiledPIDController snapController;
   
@@ -40,7 +40,8 @@ public class HeadingController {
             kSnapD.get(),
             new TrapezoidProfile.Constraints(kSnapMaxVDPS.get(), kSnapMaxADPSS.get()));
 
-        invert = (RobotBase.isReal()) ? -1.0 : 1.0;
+        // Change this to -1.0 for either sim/real if its flipped //
+        invert = (RobotBase.isReal()) ? 1.0 : 1.0;
         snapController.enableContinuousInput(0, 360);
         snapController.setTolerance(1.0);
 

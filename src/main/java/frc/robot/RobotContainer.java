@@ -11,16 +11,20 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.drive.Drive;
-import frc.robot.drive.GyroIOPigeon2;
-import frc.robot.drive.Drive.DriveState;
-import frc.robot.drive.GyroIO;
-import frc.robot.drive.Module;
-import frc.robot.drive.ModuleIO;
-import frc.robot.drive.ModuleIOKraken;
-import frc.robot.drive.ModuleIOSim;
+import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.GyroIO;
+import frc.robot.subsystems.drive.GyroIOPigeon2;
+import frc.robot.subsystems.drive.Module;
+import frc.robot.subsystems.drive.ModuleIO;
+import frc.robot.subsystems.drive.ModuleIOKraken;
+import frc.robot.subsystems.drive.ModuleIOSim;
+import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.VisionConstants;
+import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIOPV;
+import frc.robot.subsystems.drive.Drive.DriveState;
 
-import static frc.robot.drive.DriveConstants.*;
+import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
@@ -52,7 +56,14 @@ public class RobotContainer {
                         new Module("FR", new ModuleIOKraken(kFrontRight)),
                         new Module("BL", new ModuleIOKraken(kBackLeft)),
                         new Module("BR", new ModuleIOKraken(kBackRight))
-                    }, new GyroIOPigeon2());
+                    }, new GyroIOPigeon2(), new Vision(new VisionIO[] {
+                        new VisionIOPV(
+                            VisionConstants.kLeftCamName,
+                            VisionConstants.kLeftCamTransform), 
+                        new VisionIOPV(
+                            VisionConstants.kRightCamName,
+                            VisionConstants.kRightCamTransform)
+                    }));
                 break;
             case SIM:
                 // Instantiate subsystems that simulate actual hardware (IOSim modules)
@@ -61,7 +72,14 @@ public class RobotContainer {
                     new Module("FR", new ModuleIOSim()),
                     new Module("BL", new ModuleIOSim()),
                     new Module("BR", new ModuleIOSim())
-                }, new GyroIO(){});
+                }, new GyroIO(){}, new Vision(new VisionIO[] {
+                        new VisionIOPV(
+                            VisionConstants.kLeftCamName,
+                            VisionConstants.kLeftCamTransform), 
+                        new VisionIOPV(
+                            VisionConstants.kRightCamName,
+                            VisionConstants.kRightCamTransform)
+                    }));
                 break;
             default:
                 // Instantiate subsystems that are driven by playback of recorded sessions. (IO modules)
@@ -70,7 +88,8 @@ public class RobotContainer {
                     new Module("FR", new ModuleIO(){}),
                     new Module("BL", new ModuleIO(){}),
                     new Module("BR", new ModuleIO(){})
-                }, new GyroIO(){});
+                }, new GyroIO(){},
+                    new Vision(new VisionIO[] {new VisionIO() {}, new VisionIO() {}}));
                 break;
         }
 
@@ -135,15 +154,11 @@ public class RobotContainer {
 
         driverController.povLeft().onTrue(drive.setDriveStateCommandContinued(DriveState.SNIPER_LEFT)).onFalse(drive.setDriveStateCommand(DriveState.TELEOP));
 
-        driverController.b().onTrue(drive.setDriveStateCommandContinued(DriveState.DRIFT_TEST)).onFalse(drive.setDriveStateCommand(DriveState.TELEOP));
-
-        driverController.y().onTrue(drive.setDriveStateCommandContinued(DriveState.RIGHT_DEG)).onFalse(drive.setDriveStateCommand(DriveState.TELEOP));
-
-        driverController.a().onTrue(drive.characterizeDriveMotors()).onFalse(drive.setDriveStateCommand(DriveState.TELEOP));
+        driverController.x().onTrue(drive.setDriveStateCommandContinued(DriveState.PROCESSOR)).onFalse(drive.setDriveStateCommand(DriveState.TELEOP));
         
-        driverController.x().onTrue(Commands.runOnce(() -> {drive.resetGyro();}));
+        driverController.y().onTrue(Commands.runOnce(() -> {drive.resetGyro();}));
 
-        // FOR DEBUGGING PURPOSES AND SHOULD BE REMOVED DURING COMP
+        // FOR DEBUGGING PURPSES DURING SIM AND SHOULD BE REMOVED DURING COMP
         driverController.rightBumper().onTrue(Commands.runOnce(() -> {drive.resetPose();}));
     }
 
